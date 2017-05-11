@@ -3,21 +3,24 @@
 namespace CrudGeneratorTools\Skinny\Generator;
 
 
-use Kamille\Services\XLog;
+use CrudGeneratorTools\Skinny\Util\SkinnyTypeUtil;
 
 class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 {
 
 
-    private $dstDir; // the dir where generated files are stored
-    private $databases;
-    private $cache;
+
+    protected $_useCache;
+
+    /**
+     * @var SkinnyTypeUtil $skinnyTypeUtil
+     */
+    private $skinnyTypeUtil;
 
 
     public function __construct()
     {
-        $this->databases = null;
-        $this->cache = [];
+        $this->_useCache = true;
     }
 
 
@@ -28,7 +31,8 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 
     public function generateFormModel($db, $table, array &$snippets, array &$uses)
     {
-        if (false !== ($types = $this->getColTypes($db, $table))) {
+        $this->prepare();
+        if (false !== ($types = $this->skinnyTypeUtil->getTypes($db, $table, $this->_useCache))) {
             foreach ($types as $column => $type) {
                 $p = explode('+', $type, 2);
                 $typeId = $p[0];
@@ -40,15 +44,31 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
     //--------------------------------------------
     //
     //--------------------------------------------
-    public function setDstDir($dstDir)
+    public function setSkinnyTypeUtil(SkinnyTypeUtil $skinnyTypeUtil)
     {
-        $this->dstDir = $dstDir;
+        $this->skinnyTypeUtil = $skinnyTypeUtil;
         return $this;
     }
+
+    public function useCache($useCache)
+    {
+        $this->_useCache = $useCache;
+        return $this;
+    }
+
+
+
 
     //--------------------------------------------
     //
     //--------------------------------------------
+    protected function prepare()
+    {
+        if (null === $this->skinnyTypeUtil) {
+            $this->skinnyTypeUtil = SkinnyTypeUtil::create();
+        }
+    }
+
     protected function generateFormControlModel($typeId, $type, $column, $db, $table, array &$snippets, array &$uses)
     {
         switch ($typeId) {
@@ -95,28 +115,4 @@ EEE;
                 break;
         }
     }
-
-    //--------------------------------------------
-    //
-    //--------------------------------------------
-    private function getColTypes($db, $table)
-    {
-        $fullTable = "$db.$table";
-        if (!array_key_exists($fullTable, $this->cache)) {
-            $f = $this->dstDir . "/" . $db . '.php';
-            if (file_exists($f)) {
-                $types = [];
-                include $f;
-
-                foreach ($types as $table => $col2Types) {
-                    $this->cache["$db.$table"] = $col2Types;
-                }
-            } else {
-                XLog::error("SkinnyModelGenerator: file not found: $f");
-                return false;
-            }
-        }
-        return $this->cache[$fullTable];
-    }
-
 }

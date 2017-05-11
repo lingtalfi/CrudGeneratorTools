@@ -119,10 +119,39 @@ The documentation for skinny can be found in the auto-admin document of this rep
 
 
 
+ForeignKeyPreferredColumnUtil
+===============================
+
+See auto-admin documentation for explanations about what that is.
+
+```php
+<?php
+
+
+use Core\Services\A;
+use CrudGeneratorTools\Util\ForeignKeyPreferredColumnUtil;
+
+
+/**
+ * Kamille framework init
+ */
+ini_set('display_errors', "1");
+require_once __DIR__ . "/../boot.php";
+A::quickPdoInit();
+
+
+
+a(ForeignKeyPreferredColumnUtil::create()->getPreferredForeignKey('zilu', 'container'));
+
+```
 
 
 History Log
 ------------------
+    
+- 1.1.0 -- 2017-05-11
+
+    - add ForeignKeyPreferredColumnUtil
     
 - 1.0.0 -- 2017-05-10
 

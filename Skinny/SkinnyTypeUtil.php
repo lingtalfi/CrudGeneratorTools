@@ -1,74 +1,118 @@
 <?php
 
-namespace CrudGeneratorTools\Skinny\Generator;
+
+namespace CrudGeneratorTools\Skinny\Util;
 
 
 use ArrayToString\ArrayToStringTool;
 use Bat\FileSystemTool;
 use QuickPdo\QuickPdo;
-use QuickPdo\QuickPdoInfoTool;
+use QuickPdo\Util\QuickPdoInfoCacheUtil;
 
-class SkinnyTypeGenerator implements SkinnyTypeGeneratorInterface
+class SkinnyTypeUtil
 {
-    protected $dstDir;
-    protected $databases;
-    protected $module;
+    private $cacheDir;
+
+    /**
+     * @var QuickPdoInfoCacheUtil
+     */
+    protected $quickPdoInfoCache;
+
 
     public function __construct()
     {
-        $this->databases = null;
+        $this->cacheDir = "/tmp/SkinnyUtil";
     }
-
 
     public static function create()
     {
         return new static();
     }
 
-    public function generate()
+    //--------------------------------------------
+    //
+    //--------------------------------------------
+    /**
+     * Return the skinny types for a given table, or false if there aren't
+     *
+     * @param $db
+     * @param $table
+     * @param bool $useCache
+     * @return array|false
+     */
+    public function getTypes($db, $table, $useCache = true)
     {
-        $this->check();
-        $dbs = $this->databases;
-        if (null === $dbs) {
-            $dbs = QuickPdoInfoTool::getDatabases();
-        }
+        $this->prepare();
+        $manualFile = $this->cacheDir . "/manual/$db.php";
+        $autoFile = $this->cacheDir . "/auto/$db.php";
 
-        foreach ($dbs as $db) {
-            $this->generateDb($db);
+        $types = [];
+        if (file_exists($manualFile)) {
+            include $manualFile;
+        } else {
+            if (true === $useCache && file_exists($autoFile)) {
+                include $autoFile;
+            } else {
+                $this->generateTypes($db, $table, $autoFile);
+                include $autoFile;
+            }
         }
+        if (array_key_exists($table, $types)) {
+            return $types;
+        }
+        return false;
     }
 
     //--------------------------------------------
     //
     //--------------------------------------------
-    public function setDstDir($dstDir)
+    public function setCacheDir($cacheDir)
     {
-        $this->dstDir = $dstDir;
+        $this->cacheDir = $cacheDir;
         return $this;
     }
 
-    public function setModule($module)
+    public function setQuickPdoInfoCache(QuickPdoInfoCacheUtil $quickPdoInfoCache)
     {
-        $this->module = $module;
+        $this->quickPdoInfoCache = $quickPdoInfoCache;
         return $this;
     }
 
-    public function setDatabases(array $databases)
+
+
+    //--------------------------------------------
+    //
+    //--------------------------------------------
+    protected function prepare()
     {
-        $this->databases = $databases;
-        return $this;
+        if (null === $this->quickPdoInfoCache) {
+            $this->quickPdoInfoCache = QuickPdoInfoCacheUtil::create();
+        }
     }
 
-    public function getTable2Types($db)
+    protected function generateTypes($db, $table, $file)
     {
-        $tables = QuickPdoInfoTool::getTables($db);
+        $table2Types = $this->getTable2Types($db);
+        $sItems = ArrayToStringTool::toPhpArray($table2Types);
+        $c = <<<EEE
+<?php
+
+\$types = $sItems;
+
+EEE;
+        FileSystemTool::mkfile($file, $c);
+    }
+
+    protected function getTable2Types($db)
+    {
+        $tables = $this->quickPdoInfoCache->getTables($db);
         $table2Types = [];
         foreach ($tables as $table) {
-            $types = QuickPdoInfoTool::getColumnDataTypes($db . "." . $table);
-            $detailedTypes = QuickPdoInfoTool::getColumnDataTypes($db . "." . $table, true);
-            $fks = QuickPdoInfoTool::getForeignKeysInfo($table, $db);
-            $nullables = QuickPdoInfoTool::getColumnNullabilities($db . "." . $table);
-            $autoIncField = QuickPdoInfoTool::getAutoIncrementedField($db . '.' . $table);
+            $types = $this->quickPdoInfoCache->getColumnDataTypes($db . "." . $table);
+            $detailedTypes = $this->quickPdoInfoCache->getColumnDataTypes($db . "." . $table, true);
+            $fks = $this->quickPdoInfoCache->getForeignKeysInfo($table, $db);
+            $nullables = $this->quickPdoInfoCache->getColumnNullabilities($db . "." . $table);
+            $autoIncField = $this->quickPdoInfoCache->getAutoIncrementedField($db . '.' . $table);
 
             $column2SkinnyType = [];
             foreach ($types as $column => $type) {
@@ -87,25 +131,6 @@ class SkinnyTypeGenerator implements SkinnyTypeGeneratorInterface
         }
         return $table2Types;
     }
-
-    //--------------------------------------------
-    //
-    //--------------------------------------------
-    protected function generateDb($db)
-    {
-        $table2Types = $this->getTable2Types($db);
-        $sItems = ArrayToStringTool::toPhpArray($table2Types);
-        $c = <<<EEE
-<?php
-
-\$types = $sItems;
-
-EEE;
-
-        $f = $this->dstDir . "/$db.php";
-        FileSystemTool::mkfile($f, $c);
-    }
-
 
     protected function getSkinnyType($column, $table, $db, $type, $detailedType, $isAutoInc, $foreignKey, $isNullable)
     {
@@ -188,11 +213,5 @@ EEE;
         return (false !== strpos($haystack, $needle));
     }
 
-    private function check()
-    {
-        if (null === $this->dstDir) {
-            throw new \Exception("dstDir not set");
-        }
-    }
 
 }

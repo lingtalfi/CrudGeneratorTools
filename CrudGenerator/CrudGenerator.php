@@ -64,18 +64,17 @@ class CrudGenerator implements CrudGeneratorInterface
     }
 
 
-    public function setTable2foreignKeyPreferredColumn(array $table2foreignKeyPreferredColumn)
-    {
-        $this->table2foreignKeyPreferredColumn = $table2foreignKeyPreferredColumn;
-        return $this;
-    }
-
-    public function setTable2FormForeignKeySelectorFormat($table2FormForeignKeySelectorFormat)
-    {
-        $this->table2FormForeignKeySelectorFormat = $table2FormForeignKeySelectorFormat;
-        return $this;
-    }
-
+//    public function setTable2foreignKeyPreferredColumn(array $table2foreignKeyPreferredColumn)
+//    {
+//        $this->table2foreignKeyPreferredColumn = $table2foreignKeyPreferredColumn;
+//        return $this;
+//    }
+//
+//    public function setTable2FormForeignKeySelectorFormat($table2FormForeignKeySelectorFormat)
+//    {
+//        $this->table2FormForeignKeySelectorFormat = $table2FormForeignKeySelectorFormat;
+//        return $this;
+//    }
 
 
     //--------------------------------------------
@@ -146,10 +145,6 @@ class CrudGenerator implements CrudGeneratorInterface
 
     protected function getForeignKeyPreferredColumn($foreignSchema, $foreignTable, $foreignColumn, $hostSchema, $hostTable, $hostColumn)
     {
-        $fTable = $foreignSchema . "." . $foreignTable;
-        if (array_key_exists($fTable, $this->table2foreignKeyPreferredColumn)) {
-            return $foreignTable . "." . $this->table2foreignKeyPreferredColumn[$fTable];
-        }
         return $foreignTable . "." . $foreignColumn;
     }
 
