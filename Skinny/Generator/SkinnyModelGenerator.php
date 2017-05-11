@@ -3,7 +3,8 @@
 namespace CrudGeneratorTools\Skinny\Generator;
 
 
-use CrudGeneratorTools\Skinny\Util\SkinnyTypeUtil;
+
+use CrudGeneratorTools\Skinny\SkinnyTypeUtil;
 
 class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 {
@@ -15,7 +16,7 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
     /**
      * @var SkinnyTypeUtil $skinnyTypeUtil
      */
-    private $skinnyTypeUtil;
+    protected $skinnyTypeUtil;
 
 
     public function __construct()

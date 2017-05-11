@@ -1,7 +1,7 @@
 <?php
 
 
-namespace CrudGeneratorTools\Skinny\Util;
+namespace CrudGeneratorTools\Skinny;
 
 
 use ArrayToString\ArrayToStringTool;
@@ -58,7 +58,7 @@ class SkinnyTypeUtil
             }
         }
         if (array_key_exists($table, $types)) {
-            return $types;
+            return $types[$table];
         }
         return false;
     }
