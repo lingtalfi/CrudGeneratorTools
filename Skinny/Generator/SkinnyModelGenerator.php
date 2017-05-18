@@ -3,12 +3,10 @@
 namespace CrudGeneratorTools\Skinny\Generator;
 
 
-
 use CrudGeneratorTools\Skinny\SkinnyTypeUtil;
 
 class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 {
-
 
 
     protected $_useCache;
@@ -72,6 +70,7 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 
     protected function generateFormControlModel($typeId, $type, $column, $db, $table, array &$snippets, array &$uses)
     {
+        $name = $this->getControlName($type, $column, $db, $table);
         switch ($typeId) {
             case 'auto_increment':
 
@@ -89,7 +88,7 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
                 $snippets[] = <<<EEE
             ->addControl("$column", InputTextControl::create()
                 ->label("$column")
-                ->name("$column")
+                ->name("$name")
             )
 EEE;
                 $uses[] = 'FormModel\Control\InputTextControl';
@@ -98,7 +97,7 @@ EEE;
                 $snippets[] = <<<EEE
             ->addControl("$column", TextAreaControl::create()
                 ->label("$column")
-                ->name("$column")
+                ->name("$name")
             )
 EEE;
                 $uses[] = 'FormModel\Control\TextAreaControl';
@@ -107,7 +106,7 @@ EEE;
                 $snippets[] = <<<EEE
             ->addControl("$column", InputPasswordControl::create()
                 ->label("$column")
-                ->name("$column")
+                ->name("$name")
             )
 EEE;
                 $uses[] = 'FormModel\Control\InputPasswordControl';
@@ -115,5 +114,10 @@ EEE;
             default:
                 break;
         }
+    }
+
+    protected function getControlName($type, $column, $db, $table)
+    {
+        return $column;
     }
 }
