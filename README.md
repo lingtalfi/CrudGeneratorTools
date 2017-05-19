@@ -149,6 +149,10 @@ a(ForeignKeyPreferredColumnUtil::create()->getPreferredForeignKey('zilu', 'conta
 History Log
 ------------------
     
+- 1.2.0 -- 2017-05-19
+
+    - update ForeignKeyPreferredColumnUtil
+    
 - 1.1.1 -- 2017-05-18
 
     - SkinnyModelGenerator internal reorganization

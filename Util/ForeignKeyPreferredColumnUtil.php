@@ -7,6 +7,7 @@ namespace CrudGeneratorTools\Util;
 use ArrayToString\ArrayToStringTool;
 use Bat\FileSystemTool;
 use QuickPdo\QuickPdoInfoTool;
+use QuickPdo\Util\QuickPdoInfoCacheUtil;
 
 /**
  * Generate default foreignKeyPreferredColumns preferences in $path/auto/$db.php.
@@ -18,15 +19,35 @@ class ForeignKeyPreferredColumnUtil
 {
 
     private $cacheDir;
+    private $onFileGeneratedCb;
+
+    /**
+     * @var $quickPdoInfoCacheUtil QuickPdoInfoCacheUtil
+     */
+    private $quickPdoInfoCacheUtil;
+    private $_useCache;
 
     public function __construct()
     {
         $this->cacheDir = '/tmp/ForeignKeyPreferredColumnUtil';
+        $this->_useCache = true;
     }
 
     public static function create()
     {
         return new static();
+    }
+
+    public function setQuickPdoInfoCacheUtil(QuickPdoInfoCacheUtil $quickPdoInfoCacheUtil)
+    {
+        $this->quickPdoInfoCacheUtil = $quickPdoInfoCacheUtil;
+        return $this;
+    }
+
+    public function setOnFileGeneratedCallback(callable $fn)
+    {
+        $this->onFileGeneratedCb = $fn;
+        return $this;
     }
 
 
@@ -40,17 +61,19 @@ class ForeignKeyPreferredColumnUtil
      * @param bool $useCache
      * @return false|string
      */
-    public function getPreferredForeignKey($db, $table, $useCache = true)
+    public function getPreferredForeignKey($db, $table)
     {
+        $this->prepareQuickPdoInfoCacheUtil();
+
         $path = $this->cacheDir;
-        $autoPath = $path . "/auto/$db.php";
+        $autoPath = $this->getAutoFile($db);
         $manualPath = $path . "/manual/$db.php";
 
         $preferredColumns = [];
         if (file_exists($manualPath)) {
             include $manualPath;
         } else {
-            if (false === file_exists($autoPath) || false === $useCache) {
+            if (false === file_exists($autoPath) || false === $this->_useCache) {
                 $this->generatePreferredForeignKey($db, $autoPath);
             }
             include $autoPath;
@@ -63,12 +86,32 @@ class ForeignKeyPreferredColumnUtil
     }
 
 
+    public function setUseCache($useCache)
+    {
+        $this->_useCache = $useCache;
+        return $this;
+    }
+
+
     public function setCacheDir($cacheDir)
     {
         $this->cacheDir = $cacheDir;
         return $this;
     }
 
+    public function prepareDb($db)
+    {
+        $this->prepareQuickPdoInfoCacheUtil();
+        $autoPath = $this->getAutoFile($db);
+        $this->generatePreferredForeignKey($db, $autoPath);
+    }
+
+    protected function onFileGenerated($file)
+    {
+        if (is_callable($this->onFileGeneratedCb)) {
+            call_user_func($this->onFileGeneratedCb, $file);
+        }
+    }
 
 
     //--------------------------------------------
@@ -76,15 +119,15 @@ class ForeignKeyPreferredColumnUtil
     //--------------------------------------------
     private function generatePreferredForeignKey($db, $file)
     {
-        $tables = QuickPdoInfoTool::getTables($db);
+        $tables = $this->quickPdoInfoCacheUtil->getTables($db);
         $table2Fk = [];
         foreach ($tables as $table) {
-            $fkInfos = QuickPdoInfoTool::getForeignKeysInfo($table, $db);
+            $fkInfos = $this->quickPdoInfoCacheUtil->getForeignKeysInfo($table, $db);
             foreach ($fkInfos as $fkInfo) {
 
                 $fkTable = $fkInfo[1];
                 if (!array_key_exists($fkTable, $table2Fk)) {
-                    $types = QuickPdoInfoTool::getColumnDataTypes($fkTable, false);
+                    $types = $this->quickPdoInfoCacheUtil->getColumnDataTypes($fkTable, false);
                     foreach ($types as $column => $type) {
                         if ('varchar' === $type) {
                             break;
@@ -100,6 +143,19 @@ class ForeignKeyPreferredColumnUtil
         $s .= '$preferredColumns = ';
         $s .= $sArr . ';' . PHP_EOL . PHP_EOL;
         FileSystemTool::mkfile($file, $s);
+        $this->onFileGenerated($file);
+    }
+
+    private function prepareQuickPdoInfoCacheUtil()
+    {
+        if (null === $this->quickPdoInfoCacheUtil) {
+            $this->quickPdoInfoCacheUtil = QuickPdoInfoCacheUtil::create();
+        }
+    }
+
+    private function getAutoFile($db)
+    {
+        return $this->cacheDir . "/auto/$db.php";
     }
 
 }
