@@ -31,11 +31,6 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
     {
         $this->prepare();
         if (false !== ($types = $this->skinnyTypeUtil->getTypes($db, $table))) {
-        if("ek_product_lang" === $table){
-
-            a($types);
-            az("k");
-        }
             foreach ($types as $column => $type) {
                 $p = explode('+', $type, 2);
                 $typeId = $p[0];
