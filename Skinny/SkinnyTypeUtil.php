@@ -17,6 +17,7 @@ class SkinnyTypeUtil
      * @var QuickPdoInfoCacheUtil
      */
     protected $quickPdoInfoCache;
+    private $onTypesGeneratedCb;
 
 
     public function __construct()
@@ -29,6 +30,15 @@ class SkinnyTypeUtil
         return new static();
     }
 
+    public function setOnTypesGeneratedCb(callable $onTypesGeneratedCb)
+    {
+        $this->onTypesGeneratedCb = $onTypesGeneratedCb;
+        return $this;
+    }
+
+
+
+
     //--------------------------------------------
     //
     //--------------------------------------------
@@ -40,20 +50,20 @@ class SkinnyTypeUtil
      * @param bool $useCache
      * @return array|false
      */
-    public function getTypes($db, $table, $useCache = true)
+    public function getTypes($db, $table)
     {
         $this->prepare();
         $manualFile = $this->cacheDir . "/manual/$db.php";
-        $autoFile = $this->cacheDir . "/auto/$db.php";
+        $autoFile = $this->getAutoFile($db);
 
         $types = [];
         if (file_exists($manualFile)) {
             include $manualFile;
         } else {
-            if (true === $useCache && file_exists($autoFile)) {
+            if (file_exists($autoFile)) {
                 include $autoFile;
             } else {
-                $this->generateTypes($db, $table, $autoFile);
+                $this->generateTypes($db, $autoFile, $table);
                 include $autoFile;
             }
         }
@@ -72,12 +82,22 @@ class SkinnyTypeUtil
         return $this;
     }
 
+    public function cleanCache()
+    {
+        FileSystemTool::remove($this->cacheDir);
+    }
+
     public function setQuickPdoInfoCache(QuickPdoInfoCacheUtil $quickPdoInfoCache)
     {
         $this->quickPdoInfoCache = $quickPdoInfoCache;
         return $this;
     }
 
+
+    public function prepareDb($db)
+    {
+        $this->generateTypes($db, $this->getAutoFile($db));
+    }
 
 
     //--------------------------------------------
@@ -90,7 +110,7 @@ class SkinnyTypeUtil
         }
     }
 
-    protected function generateTypes($db, $table, $file)
+    protected function generateTypes($db, $file)
     {
         $table2Types = $this->getTable2Types($db);
         $sItems = ArrayToStringTool::toPhpArray($table2Types);
@@ -100,6 +120,9 @@ class SkinnyTypeUtil
 \$types = $sItems;
 
 EEE;
+        if (null !== $this->onTypesGeneratedCb) {
+            call_user_func($this->onTypesGeneratedCb, $file);
+        }
         FileSystemTool::mkfile($file, $c);
     }
 
@@ -213,5 +236,9 @@ EEE;
         return (false !== strpos($haystack, $needle));
     }
 
+    private function getAutoFile($db)
+    {
+        return $this->cacheDir . "/auto/$db.php";
+    }
 
 }

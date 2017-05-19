@@ -9,7 +9,6 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 {
 
 
-    protected $_useCache;
 
     /**
      * @var SkinnyTypeUtil $skinnyTypeUtil
@@ -19,7 +18,7 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
 
     public function __construct()
     {
-        $this->_useCache = true;
+        //
     }
 
 
@@ -31,7 +30,7 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
     public function generateFormModel($db, $table, array &$snippets, array &$uses)
     {
         $this->prepare();
-        if (false !== ($types = $this->skinnyTypeUtil->getTypes($db, $table, $this->_useCache))) {
+        if (false !== ($types = $this->skinnyTypeUtil->getTypes($db, $table))) {
             foreach ($types as $column => $type) {
                 $p = explode('+', $type, 2);
                 $typeId = $p[0];
@@ -48,13 +47,6 @@ class SkinnyModelGenerator implements SkinnyModelGeneratorInterface
         $this->skinnyTypeUtil = $skinnyTypeUtil;
         return $this;
     }
-
-    public function useCache($useCache)
-    {
-        $this->_useCache = $useCache;
-        return $this;
-    }
-
 
 
 
